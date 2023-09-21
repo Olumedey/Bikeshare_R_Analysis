@@ -1,0 +1,239 @@
+---
+title: A BIKE SHARE MEMBERSHIP ANALYSIS
+author: Olumide Afolami
+Date: sys.date()
+output: 
+github_document:
+  toc: true
+  toc_float: true
+  number_sections: true
+---
+# 1. Business Task
+The business task for Cyclistic’s bike-sharing operation is to maximize the number of annual memberships through casual-ridership conversion. This is a push from the marketing department to design an effective campaign targeting casual rider conversion.\ 
+This analysis project is going to shed light on usage patterns for subscribed and casual riders using [historical bike trip data](https://divvy-tripdata.s3.amazonaws.com/index.html). The analysis is intended to guide the best marketing strategy to employ. A key component of this strategy is to be data-driven and allow insights from this analysis, alongside other business considerations, assist our primary and secondary stakeholders execute an effective campaign.\
+## 1.1 Stakeholders
+ - **Primary Stakeholder (s)**: Lily Moreno (Director, Marketing), Marketing Analytics team\
+ - **Secondary Stakeholder(s)**: Cyclistic Executive team\
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# 2. Data Sources
+The project parameters as decided on by the marketing team involved the analysis of historical data trips from the last 12 months. A quick **ROCCC**(Reliable, Original, Comprehensive, Current and Cited) check on the structure, source, and licence highlights the confidence to draw meaningful conclusions from the data.\
+
+**Reliability**: The data from the last 12months, starting from June 2021, initially appears consistent and structured. Upon closer inspection, there appears to be human recording errors and(or) missing data with some variables.\ 
+**Originality**: The Divvy data and license are made available by Motivate International Inc. This makes it a comprehensive second party dataset.\ 
+**Comprehensiveness**: The data for the time period in question (12 months) appears comprehensive at first glance, but will require cleaning and validation to be of use. Some geographical variables are missing observations in some datasets, this will be discussed in the data cleaning steps.\
+**Currentness**: The data is current up to May 2022. As of the commencement of the project, updates have been made to the data on May 3rd 2022.\
+**Citedness**: The data is owned by the City of Chicago as cited in the data [licensing agreement](https://ride.divvybikes.com/data-license-agreement).\
+
+The dataset comes without any **PII** (Personally Identifiable Information) which removes the need for hashing or encrypting customer information. The data license also grants us the ability to perform our analysis, given we don’t use it with unlawful intent.\
+
+# 3. Data Structure
+<Insert UML diagram>
+The database contains structured data in csv format from 2014 to 2022. All 12 data files from the past 12months have the same structure, as shown in the 202X-XX-divvy-tripdata class diagram. I created a folder for all the csv downloads, giving them the aforementioned naming convention.\
+To perform analysis effectively given the size of the data, I decided to use R to preview and clean my dataset. I also used R and R-markdown to merge and transform the data as shown with the All_Trips and All_Trips2 class diagrams. The libraries used include:\
+```{r libraries}
+library(tidyverse)
+library(lubridate)
+library(ggplot2)
+library(skimr)
+library(dplyr)
+library(janitor)
+library(hms)
+```
+# 4. Using R to read and clean the data
+1. Read csv files from Jul2021 to May2022 into R\
+```{r readcsv}
+#Step 1. Organization, setting up working firectory for my R scripts, Markdowns, and Graphics
+#setwd('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/R_Scripts_Markdowns')
+
+#Step 2: Import and Inspect all 12 data sets.
+Jun2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202106-divvy-tripdata.csv')
+Jul2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202107-divvy-tripdata.csv')
+Aug2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202108-divvy-tripdata.csv')
+Sep2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202109-divvy-tripdata.csv')
+Oct2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202110-divvy-tripdata.csv')
+Nov2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202111-divvy-tripdata.csv')
+Dec2021<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202112-divvy-tripdata.csv')
+Jan2022<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202201-divvy-tripdata.csv')
+Feb2022<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202202-divvy-tripdata.csv')
+Mar2022<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202203-divvy-tripdata.csv')
+Apr2022<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202204-divvy-tripdata.csv')
+May2022<- read.csv('/Users/Olumedey/Documents/Career/Google Data Analytics/Capstone/Capstone Data set/csv files/202205-divvy-tripdata.csv')
+```
+2. Confirmed column names are similar across all datasets\
+```{r using_colnames}
+colnames(Jun2021)
+colnames(Jul2021)
+colnames(Aug2021)
+colnames(Sep2021)
+colnames(Oct2021)
+colnames(Nov2021)
+colnames(Dec2021)
+colnames(Jan2022)
+colnames(Feb2022)
+colnames(Mar2022)
+colnames(Apr2022)
+colnames(May2022)
+```
+3. Created function to change column names using dplyr rename() function, providing a better data description.\
+```{r rename_var}
+#Since all files have the same structure (column names), we can execute the same renaming statement for all data frames
+rename_func<- function(Dataset){
+  rename(Dataset,Trip_Id = Ride_Id
+         , BikeId = Rideable_Type
+         , Start_Time = Started_At
+         , End_Time = Ended_At
+         , From_Station_Name = Start_Station_Name
+         , From_Station_Id = Start_Station_Id
+         , To_Station_Name = End_Station_Name
+         , To_Station_Id = End_Station_Id
+         , Usertype = Member_Casual
+  )
+} #Function to rename columns using dplyr rename()
+
+Jun2021<- rename_func(Jun2021)
+Jul2021<- rename_func(Jul2021)
+Aug2021<- rename_func(Aug2021)
+Sep2021<- rename_func(Sep2021)
+Oct2021<- rename_func(Oct2021)
+Nov2021<- rename_func(Nov2021)
+Dec2021<- rename_func(Dec2021)
+Jan2022<- rename_func(Jan2022)
+Feb2022<- rename_func(Feb2022)
+Mar2022<- rename_func(Mar2022)
+Apr2022<- rename_func(Apr2022)
+May2022<- rename_func(May2022)
+```
+4. Combined all 12 datasets into one data frame for further analysis, giving approx. 5.1million observations (All_Trips)
+```{r merge_r}
+# Step 5a: Drop trailing columns in Jun2021 dataset
+#Jun2021<- select(Jun2021, -c(X, X.1, X.2))
+#Step 5b: Combine all data sets into a 12month data frame
+All_Trips<- bind_rows(Jun2021, Jul2021, Aug2021, Sep2021, Oct2021, Nov2021, Dec2021, Jan2022, Feb2022, Mar2022, Apr2022, May2022)
+colnames(All_Trips)
+
+# Step 5c: Drop Latitude and Longitude columns as we won't need them; Drop trailing Ride_length column
+All_Trips<- All_Trips[-c(17)]
+All_Trips<- All_Trips[All_Trips, -c(Start_Lat, Start_Lng, End_Lat, End_Lng)]
+
+nrow(All_Trips) #Number of trips over the past year
+dim(All_Trips) #Preview Options
+str(All_Trips) #Data preview
+summary(All_Trips) #Data preview
+#The concatenated dataset has 5,721,009 rows and 16 columns
+```
+5. Used the table() function to confirm uniformity in different variable information (ex: number of distinct Usertypes):\
+```{r data_preview}
+str(All_Trips$Usertype)
+skim_without_charts(All_Trips$Usertype) #gives the number of unique observations for each column: 2 types of users
+table(All_Trips$Usertype) #Provides the number of distinct observations under the Usertype variable.
+skim_without_charts(All_Trips$From_Station_Id)
+distinct(as_tibble(All_Trips$From_Station_Id)) #Capture number of Stations
+```
+6. Used the distinct(tibble) function to capture the number of stations (i.e number of distinct From_Station_Id)\
+```{r data_preview_2}
+skim_without_charts(All_Trips$From_Station_Id)
+distinct(as_tibble(All_Trips$From_Station_Id)) #Capture number of Stations
+```
+7. Formatted and transformed the date data (Start_Time) to capture the baseline intervals: Year, Month, Day of week, and Time of Day using the format() function
+```{r date_format}
+
+#Step 6: Transform Date column(variables) to capture year, month and days appropriately
+All_Trips$Date<- as.Date(All_Trips$Start_Time)
+All_Trips$Month<- format(All_Trips$Date, format= "%B")
+All_Trips$Year<- format(All_Trips$Date, format= "%Y")
+All_Trips$Day<- format(All_Trips$Date, format= "%d")
+All_Trips$DoW<- format(All_Trips$Date, format= "%A")
+
+#Creating Time formats
+All_Trips2$DateTime<- fast_strptime(All_Trips2$Start_Time, format = '%Y-%m-%d %H:%M', tz ="America/Chicago")
+All_Trips2$ToD<- format(All_Trips2$DateTime, format = '%H:%M')
+All_Trips2$ToD2<- hms::as_hms(parse_date_time(All_Trips2$ToD, "HM"))
+All_Trips2$ToD3<- hour(All_Trips2$DateTime)
+
+#Creating Time-frame categories for every ride
+All_Trips2$ToD4<- ifelse(All_Trips2$ToD3<=8,"12am to 8am",ifelse(All_Trips2$ToD3>8 & All_Trips2$ToD3<=12,"9am to 12pm",ifelse(All_Trips2$ToD3>12 & All_Trips2$ToD3<=15,"1pm to 3pm",
+                  ifelse(All_Trips2$ToD3>15 & All_Trips2$ToD3<=18,"4pm to 6pm",ifelse(All_Trips2$ToD3>18 & All_Trips2$ToD3<=21,"7pm to 9pm",ifelse(All_Trips2$ToD3>21 & All_Trips2$ToD3<=24,"10pm to 11pm","N/A"))))))
+
+```
+# 5. Data Validation and Transformation
+1. Compute the Ride length for all observations and make it a numerical variable\
+Ride_length(seconds) = End_Time - Start_Time
+```{r analysis_1}
+#Step 7: Create a variable to calculate Ride_length in seconds
+All_Trips<- mutate(All_Trips, Ride_Length = difftime(All_Trips$End_Time,All_Trips$Start_Time, units = "secs"))
+All_Trips$Ride_Length<- as.numeric(as.character(All_Trips$Ride_Length))
+
+```
+2. Data validations steps:\
+- 2a. Filter out ride lengths less than 0: These entries are classified as bike repairs\
+- 2b. Filter out incomplete geographical data (missing observations)
+```{r analysis_2}
+# Step 8: Removing bad/noisy data
+# Treat observations with negative Ride_Length: Repair records
+all_trips1<- All_Trips[(All_Trips$Ride_Length < 0),] 
+# Treat observations missing the Start or End station information
+all_trips2<- All_Trips[((All_Trips$From_Station_Name=="") | (All_Trips$To_Station_Name=="")),]
+
+# Create clean dataset
+All_Trips2<- All_Trips[!((All_Trips$Ride_Length <0) | (All_Trips$From_Station_Name =="") | (All_Trips$To_Station_Name =="")),]
+str(All_Trips2) #Cleaner Data has 4,058,461 observations/rows
+summary(All_Trips2$Ride_Length)
+```
+# 6. Analysis Summary
+1. Compute aggregate statistics of how the user types differed in ride lengths (Ride_length) using the aggregate (min, max, median, mean, length) function:\
+```{r analysis_3}
+#Step 9: Descriptive Analysis on Ride Lengths and Members
+RL_analysis<- c(Mean = mean(All_Trips2$Ride_Length), Median = median(All_Trips2$Ride_Length),
+                Max = max(All_Trips2$Ride_Length), Min= min(All_Trips2$Ride_Length))
+RL_analysis
+```
+2. Compute aggregate analysis of how the user types differed in ride lengths on different days of the week using the aggregate(min, max, median, mean, length) function
+```{r analysis_4}
+rides_duration<- aggregate(All_Trips2$Ride_Length ~ All_Trips2$Usertype+All_Trips2$DoW, FUN = mean)
+rides_duration
+```
+3. Compute a summary analysis (All_Trips3) of how user types differed in average ride lengths, on different days of the week using the group() and summarise () function.
+```{r analysis_5}
+#Re-order grouping order for DoW column
+All_Trips2$DoW<- ordered(All_Trips2$DoW, levels = c('Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'))
+
+All_Trips2$ToD4<- ordered(All_Trips2$ToD4, levels = c('12am to 8am','9am to 12pm','1pm to 3pm','4pm to 6pm','7pm to 9pm','10pm to 11pm'))
+
+
+All_Trips3<- All_Trips2 %>% 
+  mutate(Weekday = wday(Start_Time, label = TRUE)) %>% 
+  group_by(Weekday, Usertype) %>% 
+  summarise(No_of_rides = n(),Avg_Duration = mean(Ride_Length)) %>% #Calculates the number of rides and average duration(secs) of the rides
+  arrange(Usertype, Weekday) #sorts the data
+```
+4. Compute aggregate analysis (rides_ToD) of how the user types differed in number of rides and average ride lengths at different times of the day, using the aggregate(min, max, median, mean, length) function
+```{r analysis_6}
+rides_ToD<- aggregate(All_Trips2$Ride_Length ~ All_Trips2$Usertype + All_Trips2$ToD4, FUN = length) #Number of rides by time of day and usertype
+rides_ToD2<- aggregate(All_Trips2$Ride_Length ~ All_Trips2$Usertype + All_Trips2$ToD4, FUN = mean) #Average ride length by time of day and usertype
+rides_ToD2
+```
+5. Compute aggregate analysis (rides_location) of the number of rides the user types take from the different stations using the aggregate(min, max, median, mean, length) function
+```{r analysis_7}
+rides_location<- aggregate(All_Trips2$Ride_Length ~ All_Trips2$Usertype+ All_Trips2$From_Station_Name, FUN = length) #Number of rides per Station 
+rides_location
+```
+# 7. Key Visualizations
+```{r Data_Viz}
+#Viz1: Visualizing number of rides per Usertype
+All_Trips3 %>% ggplot(aes(x=Weekday, y = No_of_rides, fill = Usertype))+geom_col(position = "dodge")
+#Viz2. Visualizing daily average ride length by Usertype
+All_Trips3 %>% ggplot(aes(x= Weekday, y= Avg_Duration, fill = Usertype))+ geom_col(position = "dodge")+facet_wrap(~Usertype)
+#Viz3. Visualizing the daily number of rides by Usertype
+All_Trips3 %>% ggplot(aes(x= Weekday, y= No_of_rides, fill = Usertype))+ geom_col(position = "dodge")+facet_wrap(~Weekday)
+#Viz4. Visualizing the number of rides by time of the day
+All_Trips2 %>% ggplot()+geom_histogram(bins = 24, mapping = aes(x = ToD2, fill = Usertype, color = Usertype))+
+  labs(x="Time of Day (24hr)", y = "No. of Rides", title = "Usertype rides by Time of Day")+scale_fill_brewer(palette = 'Pastel1')
+#Viz5. Visualizing the number of rides by time of the day (Bins)
+rides_ToD4 %>% ggplot(aes(x=ToD4, y = No_of_Rides, fill = Usertype))+geom_col(position = "dodge")
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
